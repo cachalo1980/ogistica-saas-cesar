@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: logistica_saas_db
+    restart: always
+    environment:
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password_123
+      POSTGRES_DB: logistica_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - saas_network
+
+volumes:
+  pg_data:
+
+networks:
+  saas_network:
+    driver: bridge

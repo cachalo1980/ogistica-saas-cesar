@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums para roles y estados
+enum UserRole {
+  ADMIN
+  DRIVER
+  CLIENT
+}
+
+enum PackageStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RETURNED
+}
+
+// Modelo de Usuario
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String    // Hashed
+  role          UserRole  @default(CLIENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  sentPackages  Package[] @relation("Sender")
+  shipments     Shipment[] // Solo para DRIVERs
+}
+
+// Modelo de Paquete
+model Package {
+  id              String        @id @default(cuid())
+  trackingNumber  String        @unique
+  description     String?
+  weight          Float?        // en kg
+  status          PackageStatus @default(PENDING)
+  
+  senderId        String
+  sender          User          @relation("Sender", fields: [senderId], references: [id])
+  
+  shipmentId      String?
+  shipment        Shipment?     @relation(fields: [shipmentId], references: [id])
+
+  history         StatusHistory[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+// Modelo de Envío (Ruta de un conductor)
+model Shipment {
+  id          String    @id @default(cuid())
+  driverId    String
+  driver      User      @relation(fields: [driverId], references: [id])
+  
+  packages    Package[]
+  startTime   DateTime  @default(now())
+  endTime     DateTime?
+  
+  status      String    @default("ACTIVE") // ACTIVE, COMPLETED
+}
+
+// Historial de Estados (Auditoría)
+model StatusHistory {
+  id          String        @id @default(cuid())
+  packageId   String
+  package     Package       @relation(fields: [packageId], references: [id])
+  
+  status      PackageStatus
+  location    String?       // Ubicación opcional (lat/long o dirección)
+  timestamp   DateTime      @default(now())
+  
+  updatedBy   String?       // ID del usuario que actualizó
+}
